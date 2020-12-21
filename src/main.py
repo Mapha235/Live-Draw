@@ -7,7 +7,7 @@ def main():
     app = QApplication(sys.argv)
     window = Window()
     
-    # window.setWindowOpacity(0.2)
+    window.initUI()
     window.show()
     
     sys.exit(app.exec_())
