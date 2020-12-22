@@ -5,8 +5,9 @@ from app import Window
 
 def main():
     app = QApplication(sys.argv)
-    window = Window()
     
+    window = Window()
+    window.signalHandler()
     window.initUI()
     window.show()
     

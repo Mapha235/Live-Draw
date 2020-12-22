@@ -1,15 +1,15 @@
-from PyQt5 import QtCore
 from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, Qt
-from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QWidget
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap
+from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QShortcut, QWidget
+from PyQt5.QtGui import QColor, QImage, QKeySequence, QPainter, QPen, QPixmap
 
 from tools import Tools
-
+from settings import Settings
 
 class Window(QMainWindow):
 
     def __init__(self):
         super(Window, self).__init__()
+        self.settings = None
 
         self.is_eraser = False
         self.eraser_rect = QRect(QPoint(), QSize())
@@ -33,8 +33,23 @@ class Window(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.tools = Tools()
-        self.tools.save_btn.clicked.connect(self.save)
+        self.tools.initUI()
+        self.tools.show()
 
+        # ------------ Shortcuts ----------------
+        self.start_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
+        self.hide_shortcut = QShortcut(QKeySequence("Ctrl+H"), self)
+        self.close_shortcut = QShortcut(QKeySequence("Esc"), self)
+        self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        # ---------------------------------------
+
+    def initUI(self):
+        self.main_layout = QGridLayout()
+
+        self.main_widget.setLayout(self.main_layout)
+
+    def signalHandler(self):
+        self.tools.save_btn.clicked.connect(self.save)
         self.tools.green_btn.clicked.connect(lambda: self.setColor(Qt.green))
         self.tools.blue_btn.clicked.connect(lambda: self.setColor(Qt.blue))
         self.tools.red_btn.clicked.connect(lambda: self.setColor(Qt.red))
@@ -42,14 +57,12 @@ class Window(QMainWindow):
         self.tools.black_btn.clicked.connect(lambda: self.setColor(Qt.black))
         self.tools.white_btn.clicked.connect(lambda: self.setColor(Qt.white))
         self.tools.eraser_btn.clicked.connect(self.toggle)
+        self.tools.settings_btn.clicked.connect(self.openSettings)
 
-        self.tools.initUI()
-        self.tools.show()
-
-    def initUI(self):
-        self.main_layout = QGridLayout()
-
-        self.main_widget.setLayout(self.main_layout)
+        self.start_shortcut.activated.connect(lambda: print("start"))
+        self.hide_shortcut.activated.connect(lambda: print("hide"))
+        self.close_shortcut.activated.connect(self.closeApp)
+        self.save_shortcut.activated.connect(self.save)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -88,11 +101,21 @@ class Window(QMainWindow):
     def toggle(self):
         self.is_eraser = not self.is_eraser
 
+    def closeApp(self):
+        if self.settings is not None:
+            self.settings.close()
+        self.tools.close()
+        self.close()
+
+    def openSettings(self):
+        self.settings = Settings()
+        self.settings.initUI()
+        self.settings.show()
+
     def save(self):
-        
         fileName = QFileDialog.getSaveFileName(self, "Save File",
-                           "/home/jana/untitled.png",
-                           "Images (*.png *.xpm *.jpg)")
+                                               "/home/jana/untitled.png",
+                                               "Images (*.png *.xpm *.jpg)")
         file = QFile(fileName[0])
 
         file.open(QIODevice.WriteOnly)
