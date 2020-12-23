@@ -1,13 +1,15 @@
-from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, Qt
+from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, QTimer, Qt
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QShortcut, QWidget
 from PyQt5.QtGui import QColor, QImage, QKeySequence, QPainter, QPen, QPixmap
 
 from tools import Tools
 from settings import Settings
+import pyautogui
+
 
 class Window(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, img):
         super(Window, self).__init__()
         self.settings = None
 
@@ -22,28 +24,30 @@ class Window(QMainWindow):
         self.lastPoint = QPoint()
 
         screen = QApplication.primaryScreen()
-        self.image = screen.grabWindow(0)
+        # self.image = screen.grabWindow(0)
+
+        self.image = img
 
         self.setGeometry(0, 0, self.image.width(), self.image.height())
-        self.showFullScreen()
 
         self.canvas = self.image.copy(
             QRect(0, 0, self.image.width(), self.image.height()))
 
         self.setCentralWidget(self.main_widget)
 
+        # -------------------------- Shortcuts ------------------------------
+        # self.start_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
+        # self.hide_shortcut = QShortcut(QKeySequence("Ctrl+H"), self)
+        self.close_shortcut = QShortcut(QKeySequence("Esc"), self)
+        self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+
+        # -------------------------------------------------------------------
+
+    def initUI(self):
         self.tools = Tools()
         self.tools.initUI()
         self.tools.show()
 
-        # ------------ Shortcuts ----------------
-        self.start_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
-        self.hide_shortcut = QShortcut(QKeySequence("Ctrl+H"), self)
-        self.close_shortcut = QShortcut(QKeySequence("Esc"), self)
-        self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
-        # ---------------------------------------
-
-    def initUI(self):
         self.main_layout = QGridLayout()
 
         self.main_widget.setLayout(self.main_layout)
@@ -59,8 +63,8 @@ class Window(QMainWindow):
         self.tools.eraser_btn.clicked.connect(self.toggle)
         self.tools.settings_btn.clicked.connect(self.openSettings)
 
-        self.start_shortcut.activated.connect(lambda: print("start"))
-        self.hide_shortcut.activated.connect(lambda: print("hide"))
+        # self.start_shortcut.activated.connect(lambda: print("start"))
+        # self.hide_shortcut.activated.connect(lambda: print("hide"))
         self.close_shortcut.activated.connect(self.closeApp)
         self.save_shortcut.activated.connect(self.save)
 
