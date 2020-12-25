@@ -1,56 +1,60 @@
-from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, QTimer, Qt
+from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, QTimer, Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QShortcut, QWidget
-from PyQt5.QtGui import QColor, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PyQt5.QtGui import QColor, QGuiApplication, QImage, QKeySequence, QPainter, QPen, QPixmap
 
 from tools import Tools
 from settings import Settings
-import pyautogui
+
+import keyboard
+from PIL import ImageGrab
+import os
 
 
 class Window(QMainWindow):
 
-    def __init__(self, img):
+    def __init__(self):
         super(Window, self).__init__()
+        # self.setWindowFlag(Qt.FramelessWindowHint)
+
         self.settings = None
+        self.image = None
 
         self.is_eraser = False
         self.eraser_rect = QRect(QPoint(), QSize())
 
-        self.pen_color = Qt.red
+        self.initialized = False
 
         self.main_widget = QWidget()
         self.btn = QPushButton("Press me")
+
+        self.pen_color = Qt.red
         self.drawing = False
         self.lastPoint = QPoint()
-
-        screen = QApplication.primaryScreen()
-        # self.image = screen.grabWindow(0)
-
-        self.image = img
-
-        self.setGeometry(0, 0, self.image.width(), self.image.height())
-
-        self.canvas = self.image.copy(
-            QRect(0, 0, self.image.width(), self.image.height()))
 
         self.setCentralWidget(self.main_widget)
 
         # -------------------------- Shortcuts ------------------------------
-        # self.start_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
-        # self.hide_shortcut = QShortcut(QKeySequence("Ctrl+H"), self)
+        self.start_key_seq = "Ctrl+U"
+        self.hide_key_seq = "Ctrl+H"
+        self.keystroke_counter = 0
         self.close_shortcut = QShortcut(QKeySequence("Esc"), self)
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
 
         # -------------------------------------------------------------------
 
+        timer = QTimer(self)
+        timer.timeout.connect(self.checkShortcuts)
+        timer.start(1)
+
     def initUI(self):
         self.tools = Tools()
         self.tools.initUI()
-        self.tools.show()
 
         self.main_layout = QGridLayout()
 
         self.main_widget.setLayout(self.main_layout)
+
+        self.initialized = True
 
     def signalHandler(self):
         self.tools.save_btn.clicked.connect(self.save)
@@ -60,11 +64,10 @@ class Window(QMainWindow):
         self.tools.yellow_btn.clicked.connect(lambda: self.setColor(Qt.yellow))
         self.tools.black_btn.clicked.connect(lambda: self.setColor(Qt.black))
         self.tools.white_btn.clicked.connect(lambda: self.setColor(Qt.white))
+
         self.tools.eraser_btn.clicked.connect(self.toggle)
         self.tools.settings_btn.clicked.connect(self.openSettings)
 
-        # self.start_shortcut.activated.connect(lambda: print("start"))
-        # self.hide_shortcut.activated.connect(lambda: print("hide"))
         self.close_shortcut.activated.connect(self.closeApp)
         self.save_shortcut.activated.connect(self.save)
 
@@ -105,6 +108,59 @@ class Window(QMainWindow):
     def toggle(self):
         self.is_eraser = not self.is_eraser
 
+    def makeScreenshot(self):
+
+        im = ImageGrab.grab()
+        im.save('./temp.png')
+
+        self.image = QPixmap("./temp.png")
+        self.setGeometry(0, 0, self.image.width(), self.image.height())
+        self.canvas = self.image.copy(
+            QRect(0, 0, self.image.width(), self.image.height()))
+        os.system("del /f temp.png")
+
+        if self.initialized is False:
+            self.initUI()
+            self.signalHandler()
+            self.showApp()
+
+    def showApp(self):
+        if self.settings is not None:
+            self.settings.show()
+        self.tools.show()
+        self.show()
+        self.showFullScreen()
+
+    def hideApp(self):
+        if self.settings is not None:
+            self.settings.hide()
+        self.tools.hide()
+        self.hide()
+
+    def checkShortcuts(self):
+        upper_bound = 1
+
+        if keyboard.is_pressed(self.start_key_seq):
+            self.keystroke_counter += 1
+
+            if(self.keystroke_counter == upper_bound):
+                self.makeScreenshot()
+
+        elif keyboard.is_pressed(self.hide_key_seq):
+            self.keystroke_counter += 1
+
+            if(self.keystroke_counter == upper_bound):
+                if self.isVisible():
+                    self.hideApp()
+                else:
+                    self.showApp()
+
+            elif self.keystroke_counter > upper_bound:
+                self.keystroke_counter = upper_bound
+
+        else:
+            self.keystroke_counter = 0
+
     def closeApp(self):
         if self.settings is not None:
             self.settings.close()
@@ -118,7 +174,7 @@ class Window(QMainWindow):
 
     def save(self):
         fileName = QFileDialog.getSaveFileName(self, "Save File",
-                                               "/home/jana/untitled.png",
+                                               "/untitled.png",
                                                "Images (*.png *.xpm *.jpg)")
         file = QFile(fileName[0])
 

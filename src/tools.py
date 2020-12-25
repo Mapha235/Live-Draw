@@ -5,7 +5,7 @@ from settings import Settings
 
 
 class Tools(QWidget):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(Tools, self).__init__(parent)
         self.setWindowFlag(Qt.WindowStaysOnTopHint)
 
@@ -107,7 +107,7 @@ class Tools(QWidget):
 
     def signalHandler(self):
         # self.settings_btn.clicked.connect(self.openSettings)
-        pass    
+        pass
 
     def eventFilter(self, obj, event):
         # if(event.type() == QEvent.MouseButtonPress):
