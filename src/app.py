@@ -56,7 +56,7 @@ class Window(QMainWindow):
         timer.start(1)
 
     def initUI(self):
-        self.tools = Tools()
+        self.tools = Tools(QRect(self.width()/2 - 150, 0, 300, 50))
         self.tools.initUI()
 
         self.main_layout = QGridLayout()

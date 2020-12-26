@@ -5,12 +5,16 @@ from settings import Settings
 
 
 class Tools(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, q_rect, parent=None):
         super(Tools, self).__init__(parent)
         self.setWindowFlag(Qt.WindowStaysOnTopHint)
 
-        self.eraser_btn = QPushButton("Erase")
+        self.setGeometry(q_rect)
+
+        self.eraser_btn = QPushButton()
         self.eraser_btn.setFixedSize(30, 30)
+        self.eraser_btn.setIcon(QtGui.QIcon(QtGui.QIcon("./data/raditscher.png")))
+        self.eraser_btn.setIconSize(QSize(25, 25))
 
         self.eraser_dropdown = QComboBox()
         for i in range(1,50):
@@ -19,19 +23,19 @@ class Tools(QWidget):
         self.save_btn = QPushButton()
         self.save_btn.setFixedSize(30, 30)
         self.save_btn.setIcon(QtGui.QIcon(QtGui.QIcon("./data/save_icon.png")))
-        self.save_btn.setIconSize(QSize(30, 30))
+        self.save_btn.setIconSize(QSize(25, 25))
 
         self.settings_btn = QPushButton()
         self.settings_btn.setFixedSize(30, 30)
         self.settings_btn.setIcon(QtGui.QIcon(
             QtGui.QIcon("./data/settings.png")))
-        self.settings_btn.setIconSize(QSize(15, 15))
+        self.settings_btn.setIconSize(QSize(25, 25))
 
         self.erase_all_btn = QPushButton()
         self.erase_all_btn.setFixedSize(30, 30)
         self.erase_all_btn.setIcon(QtGui.QIcon(
             QtGui.QIcon("./data/erase_all.png")))
-        self.erase_all_btn.setIconSize(QSize(15, 15))
+        self.erase_all_btn.setIconSize(QSize(25, 25))
 
         # ------------ Color palette --------------
         self.selected_btn = QPushButton()
@@ -105,17 +109,10 @@ class Tools(QWidget):
         tools_layout.addWidget(self.erase_all_btn)
         self.tools.setLayout(tools_layout)
 
-        # colors_layout = QHBoxLayout()
-        # colors_layout.setAlignment(Qt.AlignHCenter)
-        # colors_layout.setSpacing(0)
-        # colors_layout.setContentsMargins(0, 0, 0, 0)
-        # self.colors.setLayout(colors_layout)
-
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.addWidget(self.menu)
         main_layout.addWidget(self.tools)
-        # main_layout.addWidget(self.colors)
         main_layout.setSpacing(0)
         self.setLayout(main_layout)
 
