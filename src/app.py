@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, QTimer, Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QShortcut, QWidget
-from PyQt5.QtGui import QColor, QGuiApplication, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PyQt5.QtGui import QColor, QGuiApplication, QImage, QKeySequence, QPainter, QPen, QPixmap, QPalette
 
 from tools import Tools
 from settings import Settings
@@ -9,6 +9,14 @@ import keyboard
 from PIL import ImageGrab
 import os
 
+color_dictionary = {
+    Qt.blue:"blue",
+    Qt.red:"red",
+    Qt.yellow:"yellow",
+    Qt.green:"rgb(0,255,0)",
+    Qt.white:"white",
+    Qt.black:"black"
+}
 
 class Window(QMainWindow):
 
@@ -19,6 +27,7 @@ class Window(QMainWindow):
         self.settings = None
         self.image = None
 
+        self.eraser_size = 5
         self.is_eraser = False
         self.eraser_rect = QRect(QPoint(), QSize())
 
@@ -66,6 +75,8 @@ class Window(QMainWindow):
         self.tools.white_btn.clicked.connect(lambda: self.setColor(Qt.white))
 
         self.tools.eraser_btn.clicked.connect(self.toggle)
+        self.tools.eraser_dropdown.currentTextChanged.connect(self.setEraserSize)
+        self.tools.erase_all_btn.clicked.connect(self.clearAll)
         self.tools.settings_btn.clicked.connect(self.openSettings)
 
         self.close_shortcut.activated.connect(self.closeApp)
@@ -84,7 +95,7 @@ class Window(QMainWindow):
         if event.buttons() and Qt.LeftButton and self.drawing:
             painter = QPainter(self.canvas)
             if self.is_eraser:
-                r = QRect(QPoint(), 100*QSize(1, 1))
+                r = QRect(QPoint(), self.eraser_size*QSize(1, 1))
                 r.moveCenter(event.pos())
                 px = self.image.copy(r)
                 painter.save()
@@ -92,7 +103,7 @@ class Window(QMainWindow):
                 painter.restore()
                 painter.drawPixmap(r, px)
             else:
-                painter.setPen(QPen(self.pen_color, 3, Qt.SolidLine))
+                painter.setPen(QPen(self.pen_color, self.eraser_size, Qt.SolidLine))
                 painter.drawLine(self.lastPoint, event.pos())
             self.lastPoint = event.pos()
             self.update()
@@ -101,8 +112,22 @@ class Window(QMainWindow):
         if event.button == Qt.LeftButton:
             self.drawing = False
 
+    def clearAll(self):
+        self.canvas = self.image.copy(
+            QRect(0, 0, self.image.width(), self.image.height()))
+        self.update()
+
+    def setEraserSize(self, size):
+        self.eraser_size = int(size)
+
     def setColor(self, color):
         self.pen_color = color
+        pal = self.tools.selected_btn.palette()
+        pal.setColor(QPalette.Button, color)
+        self.tools.selected_btn.setAutoFillBackground(True)
+        self.tools.selected_btn.setStyleSheet("background-color: " + color_dictionary[color])
+        self.tools.selected_btn.setPalette(pal)
+        self.tools.selected_btn.update()
         self.is_eraser = False
 
     def toggle(self):
