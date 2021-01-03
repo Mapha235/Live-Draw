@@ -10,13 +10,14 @@ from PIL import ImageGrab
 import os
 
 color_dictionary = {
-    Qt.blue:"blue",
-    Qt.red:"red",
-    Qt.yellow:"yellow",
-    Qt.green:"rgb(0,255,0)",
-    Qt.white:"white",
-    Qt.black:"black"
+    Qt.blue: "blue",
+    Qt.red: "red",
+    Qt.yellow: "yellow",
+    Qt.green: "rgb(0,255,0)",
+    Qt.white: "white",
+    Qt.black: "black"
 }
+
 
 class Window(QMainWindow):
 
@@ -26,6 +27,9 @@ class Window(QMainWindow):
 
         self.settings = None
         self.image = None
+
+        self.history = []
+        self.line = Line()
 
         self.eraser_size = 5
         self.is_eraser = False
@@ -46,8 +50,14 @@ class Window(QMainWindow):
         self.start_key_seq = "Ctrl+U"
         self.hide_key_seq = "Ctrl+H"
         self.keystroke_counter = 0
+
         self.close_shortcut = QShortcut(QKeySequence("Esc"), self)
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+
+        self.undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
+        self.current_history_index = 0
+
+        self.redo_shortcut = QShortcut(QKeySequence("Ctrl+Y"), self)
 
         # -------------------------------------------------------------------
 
@@ -74,13 +84,15 @@ class Window(QMainWindow):
         self.tools.black_btn.clicked.connect(lambda: self.setColor(Qt.black))
         self.tools.white_btn.clicked.connect(lambda: self.setColor(Qt.white))
 
-        self.tools.eraser_btn.clicked.connect(self.toggle)
-        self.tools.eraser_dropdown.currentTextChanged.connect(self.setEraserSize)
+        self.tools.eraser_btn.clicked.connect(self.toggleEraser)
+        self.tools.eraser_dropdown.currentTextChanged.connect(
+            self.setEraserSize)
         self.tools.erase_all_btn.clicked.connect(self.clearAll)
         self.tools.settings_btn.clicked.connect(self.openSettings)
 
         self.close_shortcut.activated.connect(self.closeApp)
         self.save_shortcut.activated.connect(self.save)
+        self.undo_shortcut.activated.connect(self.undo)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -103,7 +115,8 @@ class Window(QMainWindow):
                 painter.restore()
                 painter.drawPixmap(r, px)
             else:
-                painter.setPen(QPen(self.pen_color, self.eraser_size, Qt.SolidLine))
+                painter.setPen(
+                    QPen(self.pen_color, self.eraser_size, Qt.SolidLine))
                 painter.drawLine(self.lastPoint, event.pos())
             self.lastPoint = event.pos()
             self.update()
@@ -111,6 +124,11 @@ class Window(QMainWindow):
     def mouseReleaseEvent(self, event):
         if event.button == Qt.LeftButton:
             self.drawing = False
+
+        # TODO
+        self.history = self.history[0:self.current_history_index+1]
+        self.history.append(self.canvas.copy())
+        self.current_history_index += 1
 
     def clearAll(self):
         self.canvas = self.image.copy(
@@ -125,20 +143,23 @@ class Window(QMainWindow):
         pal = self.tools.selected_btn.palette()
         pal.setColor(QPalette.Button, color)
         self.tools.selected_btn.setAutoFillBackground(True)
-        self.tools.selected_btn.setStyleSheet("background-color: " + color_dictionary[color])
+        self.tools.selected_btn.setStyleSheet(
+            "background-color: " + color_dictionary[color])
         self.tools.selected_btn.setPalette(pal)
         self.tools.selected_btn.update()
         self.is_eraser = False
 
-    def toggle(self):
+    def toggleEraser(self):
         self.is_eraser = not self.is_eraser
 
     def makeScreenshot(self):
-
         im = ImageGrab.grab()
         im.save('./temp.png')
 
         self.image = QPixmap("./temp.png")
+        self.history.append(self.image.copy())
+        self.current_history_index = len(self.history) - 1
+
         self.setGeometry(0, 0, self.image.width(), self.image.height())
         self.canvas = self.image.copy(
             QRect(0, 0, self.image.width(), self.image.height()))
@@ -147,6 +168,9 @@ class Window(QMainWindow):
         if self.initialized is False:
             self.initUI()
             self.signalHandler()
+            self.showApp()
+        else:
+            self.hideApp()
             self.showApp()
 
     def showApp(self):
@@ -205,3 +229,9 @@ class Window(QMainWindow):
 
         file.open(QIODevice.WriteOnly)
         self.canvas.save(file, "PNG")
+
+    def undo(self):
+        if self.current_history_index > 0:
+            self.current_history_index -= 1
+            self.canvas = self.history[self.current_history_index].copy()
+            self.repaint()
