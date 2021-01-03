@@ -18,18 +18,15 @@ color_dictionary = {
     Qt.black: "black"
 }
 
-
 class Window(QMainWindow):
 
     def __init__(self):
         super(Window, self).__init__()
-        # self.setWindowFlag(Qt.FramelessWindowHint)
 
         self.settings = None
         self.image = None
 
         self.history = []
-        self.line = Line()
 
         self.eraser_size = 5
         self.is_eraser = False
@@ -93,6 +90,7 @@ class Window(QMainWindow):
         self.close_shortcut.activated.connect(self.closeApp)
         self.save_shortcut.activated.connect(self.save)
         self.undo_shortcut.activated.connect(self.undo)
+        self.redo_shortcut.activated.connect(self.redo)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -125,8 +123,9 @@ class Window(QMainWindow):
         if event.button == Qt.LeftButton:
             self.drawing = False
 
-        # TODO
+        # Update history to current Image
         self.history = self.history[0:self.current_history_index+1]
+        # On new input (draw/erase): Append new history state
         self.history.append(self.canvas.copy())
         self.current_history_index += 1
 
@@ -157,6 +156,7 @@ class Window(QMainWindow):
         im.save('./temp.png')
 
         self.image = QPixmap("./temp.png")
+        self.history.clear()
         self.history.append(self.image.copy())
         self.current_history_index = len(self.history) - 1
 
@@ -233,5 +233,11 @@ class Window(QMainWindow):
     def undo(self):
         if self.current_history_index > 0:
             self.current_history_index -= 1
+            self.canvas = self.history[self.current_history_index].copy()
+            self.repaint()
+
+    def redo(self):
+        if self.current_history_index < len(self.history) - 1:
+            self.current_history_index += 1
             self.canvas = self.history[self.current_history_index].copy()
             self.repaint()
