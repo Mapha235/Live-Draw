@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QFile, QIODevice, QPoint, QRect, QSize, QTimer, Qt, QTimer
+from PyQt5.QtCore import QEvent, QFile, QIODevice, QPoint, QRect, QSize, QTimer, QTimer, Qt
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow, QPushButton, QShortcut, QWidget
 from PyQt5.QtGui import QColor, QGuiApplication, QImage, QKeySequence, QPainter, QPen, QPixmap, QPalette
 
@@ -64,6 +64,7 @@ class Window(QMainWindow):
 
     def initUI(self):
         self.tools = Tools(QRect(self.width()/2 - 150, 0, 300, 50))
+        self.tools.installEventFilter(self)
         self.tools.initUI()
 
         self.main_layout = QGridLayout()
@@ -71,6 +72,8 @@ class Window(QMainWindow):
         self.main_widget.setLayout(self.main_layout)
 
         self.initialized = True
+
+        self.tools.installEventFilter(self)
 
     def signalHandler(self):
         self.tools.save_btn.clicked.connect(self.save)
@@ -132,6 +135,8 @@ class Window(QMainWindow):
     def clearAll(self):
         self.canvas = self.image.copy(
             QRect(0, 0, self.image.width(), self.image.height()))
+        self.history.append(self.image)
+        self.current_history_index += 1
         self.update()
 
     def setEraserSize(self, size):
@@ -241,3 +246,16 @@ class Window(QMainWindow):
             self.current_history_index += 1
             self.canvas = self.history[self.current_history_index].copy()
             self.repaint()
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Z and event.modifiers() == Qt.ControlModifier:
+                self.undo()
+            elif event.key() == Qt.Key_Y and event.modifiers() == Qt.ControlModifier:
+                self.redo()
+            elif event.key() == Qt.Key_Escape:
+                self.closeApp()
+            elif event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
+                self.save()
+
+        return super(Window, self).eventFilter(obj, event)
